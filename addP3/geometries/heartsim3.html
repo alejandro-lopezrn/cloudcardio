@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>CloudPhysio Simulator</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+			#info {
+				color: #fff;
+				position: absolute;
+				top: 10px;
+				width: 100%;
+				text-align: center;
+				z-index: 100;
+				display:block;
+
+			}
+
+			a { color: skyblue }
+			.button { background:#999; color:#eee; padding:0.2em 0.5em; cursor:pointer }
+			.highlight { background:orange; color:#fff; }
+
+			span {
+				display: inline-block;
+				width: 60px;
+				float: left;
+				text-align: center;
+			}
+#topmenu {
+				position: absolute;
+				top: 10px;
+				right: 10px;
+				width: 100%;
+				text-align: right;
+				padding: 0;
+				margin: 0;
+				z-index: 1;
+			}
+			
+#infoBox {
+				position: absolute;
+				top: 100px;
+				right: 50%
+				width: 100%;
+				text-align: left;
+				background: transparent;
+			}
+#aboutBox {
+				position: absolute;
+				top: 300px;
+				right: 100px
+				width: 1000px
+				text-align: left;
+				background: transparent;
+			}
+			
+			
+			button {
+				color: rgb(255,255,255);
+				background: transparent;
+				border: 0px;
+				padding: 5px 10px;
+				cursor: pointer;
+			}
+			
+			label {
+				color: rgb(255,255,255);
+				background: transparent;
+				border: 0px;
+				padding: 5px 10px;
+				cursor: pointer;
+			}
+			button:hover {
+				background-color: rgba(0,255,255,0.5);
+			}
+			button:active {
+				color: #000000;
+				background-color: rgba(0,255,255,1);
+			}
+
+			.bond {
+				width: 5px;
+				height: 10px;
+				background: #eee;
+				display: block;
+			}
+		</style>
+	</head>
+	<body>
+	
+<div id="topmenu">
+			<button id="b_a">GeoInfo</button>
+			<button id="b_b">About</button>
+			<button id="b_c">Wireframe</button>
+			<label id="frameText">test</label> 
+		</div>
+		<div id="info">
+			<a> CloudPhysio Simulator</a>
+		
+		</div>
+		
+		<div id="infoBox" style="display:none">
+<label id="lblinfoBox">
+<p>
+Ventricules 1444 Nodes<p>
+Bidomain Simulation<p>
+3 point Stimulus<p>
+</label> 
+</div> 
+
+		<div id="aboutBox" style="display:none">
+<label id="lblaboutBox">
+<p>
+Controls:<p>
+Left: Last Frame<p>
+Right: Next Frame<p>
+Demo by <p>
+Alejandro Lopez Rincon <p>
+<p>
+<a href="http://www.itsamazigh.com/CloudCardio/home.html">CloudPhysio Project </a>
+</label> 
+</div> 
+	
+		<script src="build/three.min.js"></script>
+
+		<script src="js/loaders/STLLoader.js"></script>
+<script src="js/OrbitControls.js"></script>
+
+		<script src="js/Detector.js"></script>
+		<script src="js/libs/stats.min.js"></script>
+		<script src="var/limit.js"></script>
+		
+		
+		
+		
+<script>
+
+			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+
+			var container, stats;
+
+			var camera, cameraTarget, scene, renderer,mesh,material,geometry, controls;
+			var num=0;
+			var info=true;
+			var about=true;
+			var wire=false;
+			init();
+			animate();
+			
+			function loadjscssfile(filename, filetype){
+			 if (filetype=="js"){ //if filename is a external JavaScript file
+			  var fileref=document.createElement('script')
+			  fileref.setAttribute("type","text/javascript")
+			  fileref.setAttribute("src", filename)
+			 }
+			 else if (filetype=="css"){ //if filename is an external CSS file
+			  var fileref=document.createElement("link")
+			  fileref.setAttribute("rel", "stylesheet")
+			  fileref.setAttribute("type", "text/css")
+			  fileref.setAttribute("href", filename)
+			 }
+			 if (typeof fileref!="undefined")
+			  document.getElementsByTagName("head")[0].appendChild(fileref)
+			}
+			
+			function removejscssfile(filename, filetype){
+			 var targetelement=(filetype=="js")? "script" : (filetype=="css")? "link" : "none" //determine element type to create nodelist from
+			 var targetattr=(filetype=="js")? "src" : (filetype=="css")? "href" : "none" //determine corresponding attribute to test for
+			 var allsuspects=document.getElementsByTagName(targetelement)
+			 for (var i=allsuspects.length; i>=0; i--){ //search backwards within nodelist for matching elements to remove
+			  if (allsuspects[i] && allsuspects[i].getAttribute(targetattr)!=null && allsuspects[i].getAttribute(targetattr).indexOf(filename)!=-1)
+			   allsuspects[i].parentNode.removeChild(allsuspects[i]) //remove element by calling parentNode.removeChild()
+			 }
+			}
+
+			function createMenu() {
+
+
+
+				var b_a = document.getElementById( "b_a" );
+				var b_b = document.getElementById( "b_b" );
+				var b_c = document.getElementById( "b_c" );
+
+
+				b_a.addEventListener( 'click', function() {  showAtoms() } );
+				b_b.addEventListener( 'click', function() { showBonds() } );
+				b_c.addEventListener( 'click', function() { showWireFrame() } );
+				
+				showDivinfoBox();
+				showDivaboutBox();
+			}
+
+			function showDivinfoBox( ){ document.getElementById( 'infoBox').style.display = 'block'; }
+			function hideDivinfoBox( ){ document.getElementById( 'infoBox').style.display = 'none'; } 
+			
+			function showDivaboutBox( ){ document.getElementById( 'aboutBox').style.display = 'block'; }
+			function hideDivaboutBox( ){ document.getElementById( 'aboutBox').style.display = 'none'; } 
+			
+			function showAtoms() {
+			if (info==false)
+			{
+				showDivinfoBox();
+				info=true;
+				
+			}
+			else
+			{
+				hideDivinfoBox();
+				info=false;
+			}
+
+
+
+			}
+
+function showBonds() {
+
+		if (about==false)
+			{
+				showDivaboutBox();
+				about=true;
+				
+			}
+			else
+			{
+				hideDivaboutBox();
+				about=false;
+			}
+
+			}
+
+function showWireFrame() {
+
+		if (wire==false)
+			{
+				material.wireframe=true;
+				wire=true;
+				
+			}
+			else
+			{
+				material.wireframe=false;
+				wire=false;
+			}
+
+			}
+			
+
+			function init() {
+
+				container = document.createElement( 'div' );
+				document.body.appendChild( container );
+
+				camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, 1, 15 );
+				camera.position.set( 3, 0.15, 3 );
+				camera.position.x = Math.cos( 3 ) * 3;
+				camera.position.z = Math.sin( 3 ) * 3;
+
+				cameraTarget = new THREE.Vector3( 0, -0.25, 0 );
+camera.lookAt(cameraTarget);	
+				scene = new THREE.Scene();
+				scene.fog = new THREE.Fog( 0x72645b, 2, 15 );
+
+
+				// Ground
+
+				var plane = new THREE.Mesh( new THREE.PlaneGeometry( 40, 40 ), new THREE.MeshPhongMaterial( { ambient: 0x999999, color: 0x999999, specular: 0x101010 } ) );
+				plane.rotation.x = -Math.PI/2;
+				plane.position.y = -1;
+				scene.add( plane );
+
+				plane.receiveShadow = true;
+
+
+				// ASCII file
+
+				var loader = new THREE.STLLoader();
+				loader.addEventListener( 'load', function ( event ) {
+
+					 geometry = event.content;
+					 material = new THREE.MeshPhongMaterial( { vertexColors: THREE.VertexColors,  wireframe: false,shininess: 30, specular: 0x111111} );
+					 
+					
+	
+					mesh = new THREE.Mesh( geometry, material );
+					
+
+					mesh.position.set( 0, -0.25, 0 );
+					mesh.rotation.set( 0, - Math.PI / 2, 0 );
+					mesh.scale.set( 1, 1, 1 );
+
+					mesh.castShadow = true;
+					mesh.receiveShadow = true;
+					geometry.dynamic=true;
+					
+					scene.add( mesh );
+					
+					
+
+				} );
+				loader.load( './models/stl/ascii/heart.stl' );
+				
+
+				// Lights
+
+				scene.add( new THREE.AmbientLight( 0xffffff ) );
+
+				addShadowedLight( 1, 1, 1, 0xffffff, 1 );
+				addShadowedLight( 0.5, 1, -1, 0xffffff, 1 );
+				addShadowedLight( 0.5, -1, -1, 0xffffff, 1 );
+				// renderer
+
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+				renderer.setClearColor( scene.fog.color, 1 );
+
+				renderer.gammaInput = true;
+				renderer.gammaOutput = true;
+
+				renderer.shadowMapEnabled = true;
+				renderer.shadowMapCullFace = THREE.CullFaceBack;
+
+				container.appendChild( renderer.domElement );
+
+				controls = new THREE.OrbitControls( camera, renderer.domElement );
+				// stats
+
+				stats = new Stats();
+				stats.domElement.style.position = 'absolute';
+				stats.domElement.style.top = '0px';
+				container.appendChild( stats.domElement );
+
+				//
+createMenu();
+				window.addEventListener( 'resize', onWindowResize, false );
+				window.addEventListener("keydown", keyDownTextField, false);
+			}
+			
+			function keyDownTextField (e) {
+			  var keyCode = e.keyCode;
+			   if(keyCode==39) 
+				{
+					loadColors();
+				}
+				if(keyCode==37) 
+				{
+					loadColors2();
+				}
+    
+			}
+			
+			function loadColors() {
+				var n = num.toString(); 
+
+				loadjscssfile("var/"+n+".js", "js") //dynamically load and add this .js file	
+				for ( var i = 0; i < geometry.faces.length; i++ ) 
+				{
+					face  = geometry.faces[ i ];	
+
+
+					for( var j = 0; j < 3; j++ ) 
+					{
+						// initialize color variable
+						var index=i*3+j;
+						color = new THREE.Color(colorCodes[index][0]*2,colorCodes[index][1]*2,colorCodes[index][2]*2);
+						face.vertexColors[ j ] = color;
+					}
+					
+				}
+				mesh.geometry.colorsNeedUpdate = true;
+				removejscssfile("var/"+n+".js", "js") //remove all occurences of "somescript.js" on page
+				
+				num=num+1;
+				if (num>limit)
+				{
+					num=0;
+				}
+			}
+
+			function loadColors2() {
+				var n = num.toString(); 
+
+				loadjscssfile("var/"+n+".js", "js") //dynamically load and add this .js file	
+				for ( var i = 0; i < geometry.faces.length; i++ ) 
+				{
+					face  = geometry.faces[ i ];	
+
+
+					for( var j = 0; j < 3; j++ ) 
+					{
+						// initialize color variable
+						var index=i*3+j;
+						color = new THREE.Color(colorCodes[index][0]*2,colorCodes[index][1]*2,colorCodes[index][2]*2);
+						face.vertexColors[ j ] = color;
+					}
+					
+				}
+				mesh.geometry.colorsNeedUpdate = true;
+				removejscssfile("var/"+n+".js", "js") //remove all occurences of "somescript.js" on page
+				
+				num=num-1;
+				if (num<0)
+				{
+					num=limit;
+				}
+			}
+			
+			function addShadowedLight( x, y, z, color, intensity ) {
+
+				var directionalLight = new THREE.DirectionalLight( color, intensity );
+				directionalLight.position.set( x, y, z )
+				scene.add( directionalLight );
+
+				directionalLight.castShadow = true;
+				// directionalLight.shadowCameraVisible = true;
+
+				var d = 1;
+				directionalLight.shadowCameraLeft = -d;
+				directionalLight.shadowCameraRight = d;
+				directionalLight.shadowCameraTop = d;
+				directionalLight.shadowCameraBottom = -d;
+
+				directionalLight.shadowCameraNear = 1;
+				directionalLight.shadowCameraFar = 4;
+
+				directionalLight.shadowMapWidth = 1024;
+				directionalLight.shadowMapHeight = 1024;
+
+				directionalLight.shadowBias = -0.005;
+				directionalLight.shadowDarkness = 0.15;
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				geometry.material.color.setHex(0x0000ff); // there is also setHSV and setRGB
+			}
+
+			function animate() {
+
+  document.getElementById('frameText').innerHTML = "Frame="+ num.toString(); 
+
+				requestAnimationFrame( animate );
+				//loadColors();
+				render();
+				stats.update();
+				controls.update();
+			}
+
+			function render() {
+
+				var timer = Date.now() * 0.0005;
+
+				//camera.position.x = Math.cos( timer ) * 3;
+				//camera.position.z = Math.sin( timer ) * 3;
+
+				//camera.lookAt( cameraTarget );
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+	</body>
+</html>
